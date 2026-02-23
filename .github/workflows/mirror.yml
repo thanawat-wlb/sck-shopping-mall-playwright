@@ -1,6 +1,5 @@
 name: Mirror to Personal GitHub
 
-# สั่งให้ทำงานเมื่อมีการ push หรือ merge โค้ดเข้ามาที่ branch 'main'
 on:
   push:
     branches:
@@ -8,7 +7,10 @@ on:
 
 jobs:
   mirror_to_github:
+    # เพิ่มบรรทัดนี้: ป้องกันไม่ให้โค้ดไปรันซ้ำแล้วพังที่ฝั่ง Personal
+    if: github.repository == 'thanawat-wlb/sck-shopping-mall-playwright'
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout source repository
         uses: actions/checkout@v4
@@ -17,19 +19,17 @@ jobs:
 
       - name: Push to mirror repository
         env:
-          # ดึงกุญแจบ้าน Personal ที่เราฝากไว้ในตู้เซฟฝั่ง Work มาใช้
           DEST_GITHUB_TOKEN: ${{ secrets.DESTINATION_GITHUB_TOKEN }}
-          # ใส่ Username ของบัญชี Personal
           DEST_GITHUB_USERNAME: "thanawat-hub" 
-          # ใส่ชื่อ Repo ของบัญชี Personal
-          DEST_REPO: "wlb-playwright" 
+          # แก้ไข 1: เปลี่ยนชื่อ Repo ให้ตรงกับปลายทาง
+          DEST_REPO: "sck-shopping-mall-playwright" 
         run: |
           echo "Start mirroring branch $GITHUB_REF_NAME to GitHub..."
           
+          # อีเมลสำหรับตัว Runner ของ GitHub Action (ไม่ต้องแก้อะไรตรงนี้)
           git config --global user.email "bunysiththiphic@gmail.com"
           git config --global user.name "thanawat-hub"
           
-          # ใช้กุญแจ (Token) ที่ดึงมา ยืนยันตัวตนตอนแอด URL ปลายทาง
           git remote add mirror https://${DEST_GITHUB_USERNAME}:${DEST_GITHUB_TOKEN}@github.com/${DEST_GITHUB_USERNAME}/${DEST_REPO}.git
           
           git push mirror HEAD:refs/heads/$GITHUB_REF_NAME

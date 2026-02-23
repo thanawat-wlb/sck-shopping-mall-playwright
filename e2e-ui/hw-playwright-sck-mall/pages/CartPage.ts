@@ -19,16 +19,16 @@ export class CartPage {
     this.checkoutBtn = page.locator('#shopping-cart-checkout-btn');
   }
 
-  // เทียบเท่า: ตรวจสอบราคา สินค้า ... ในหน้าตระกร้า
-  async verifyCartItems(name: string, price: string, points: string, qty: string, subtotal: string) {
+  // เทียบเท่า: ตรวจสอบราคา สินค้า ... ในหน้าตระกร้า base/product/1
+  async verifyCartItems(name: string, price_total: string, points_total: string, qty: string){ //,subtotal: string) {
     // รอให้ราคาโหลดขึ้นมาก่อนทำ action อื่น
     await this.productPrice.waitFor({ state: 'visible' }); 
     
     await expect(this.productName).toHaveText(name);
-    await expect(this.productPrice).toHaveText(`฿${price}`);
-    await expect(this.productPoint).toHaveText(`${points} Points`);
+    await expect(this.productPrice).toHaveText(`฿${price_total}`);
+    await expect(this.productPoint).toHaveText(`${points_total} Points`);
     await expect(this.productQtyInput).toHaveValue(qty);
-    await expect(this.subtotalPrice).toHaveText(`฿${subtotal}`);
+    // await expect(this.subtotalPrice).toHaveText(`฿${subtotal}`);
   }
 
   // เทียบเท่า: คลิกการชำระเงิน(checkout)

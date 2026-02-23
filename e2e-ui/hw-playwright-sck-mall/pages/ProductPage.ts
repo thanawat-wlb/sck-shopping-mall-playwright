@@ -1,70 +1,99 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class ProductPage {
-  readonly page: Page;
-  readonly productName: Locator;
-  readonly productQtyInput: Locator;
-  readonly productPrice: Locator;
-  readonly productPoint: Locator;
-  readonly productStock: Locator;
-  readonly addToCartBtn: Locator;
-  readonly cartIconBadge: Locator;
-  readonly qtyIncrementBtn: Locator;
+/**
+ * ProductPage class จัดการหน้า Product Details
+ */
+export class ProductPage extends BasePage {
+  // ===== Selectors =====
+  private readonly SELECTORS = {
+    productName: '#product-detail-product-name',
+    productQtyInput: '#product-detail-quantity-input',
+    qtyIncrementBtn: '#product-detail-quantity-increment-btn',
+    productPrice: '#product-detail-price-thb',
+    productPoint: '#product-detail-point',
+    productStock: '#product-detail-stock',
+    addToCartBtn: '#product-detail-add-to-cart-btn',
+    cartIconBadge: '#header-menu-cart-btn'
+  };
 
-  constructor(page: Page) {
-    this.page = page;
-    this.productName = page.locator('#product-detail-product-name');
-    this.productQtyInput = page.locator('#product-detail-quantity-input');
-    this.productPrice = page.locator('#product-detail-price-thb');
-    this.productPoint = page.locator('#product-detail-point');
-    this.productStock = page.locator('#product-detail-stock');
-    this.addToCartBtn = page.locator('#product-detail-add-to-cart-btn');
-    this.cartIconBadge = page.locator('#header-menu-cart-btn');
-    this.qtyIncrementBtn = page.locator('#product-detail-quantity-increment-btn');
+  // ===== Locators =====
+  private readonly productNameLocator: Locator;
+  private readonly productQtyInputLocator: Locator;
+  private readonly qtyIncrementBtnLocator: Locator;
+  private readonly productPriceLocator: Locator;
+  private readonly productPointLocator: Locator;
+  private readonly productStockLocator: Locator;
+  private readonly addToCartBtnLocator: Locator;
+  private readonly cartIconBadgeLocator: Locator;
+
+  constructor(page) {
+    super(page);
+    this.productNameLocator = page.locator(this.SELECTORS.productName);
+    this.productQtyInputLocator = page.locator(this.SELECTORS.productQtyInput);
+    this.qtyIncrementBtnLocator = page.locator(this.SELECTORS.qtyIncrementBtn);
+    this.productPriceLocator = page.locator(this.SELECTORS.productPrice);
+    this.productPointLocator = page.locator(this.SELECTORS.productPoint);
+    this.productStockLocator = page.locator(this.SELECTORS.productStock);
+    this.addToCartBtnLocator = page.locator(this.SELECTORS.addToCartBtn);
+    this.cartIconBadgeLocator = page.locator(this.SELECTORS.cartIconBadge);
   }
 
-  // เทียบเท่า: ตรวจสอบราคา สินค้า Balance Training Bicycle...
-  async verifyProductDetails(expectedName: string, expectedPrice: string, expectedPoint: string) {
-    await expect(this.productName).toHaveText(expectedName);
-    await expect(this.productQtyInput).toHaveValue('1'); // ตรวจสอบว่าค่าเริ่มต้นเป็น 1
-    await expect(this.productPrice).toHaveText(expectedPrice);
-    await expect(this.productPoint).toHaveText(expectedPoint);
-    // เช็คว่าสต็อกต้องไม่เป็น 0
-    await expect(this.productStock).not.toHaveText('0'); 
+  // ===== Assertion Methods =====
+
+  /**
+   * ตรวจสอบข้อมูลสินค้า (ชื่อ, ราคา, แต้ม)
+   */
+  async verifyProductDetails(
+    expectedName: string,
+    expectedPrice: string,
+    expectedPoint: string
+  ): Promise<void> {
+    await expect(this.productNameLocator).toHaveText(expectedName);
+    await expect(this.productQtyInputLocator).toHaveValue('1');
+    await expect(this.productPriceLocator).toHaveText(expectedPrice);
+    await expect(this.productPointLocator).toHaveText(expectedPoint);
+    await expect(this.productStockLocator).not.toHaveText('0');
   }
 
-  // เทียบเท่า: คลิกเลือกสินค้าลงตระกร้า
-  async addToCart() {
-    await this.addToCartBtn.click();
-  }
+  // ===== Action Methods =====
 
-  // เพิ่มจำนวนสินค้า โดยกดปุ่ม increment
-  async increaseQuantity(targetQty: number | string) {
-    // ก่อนกด increment ให้รีเซ็ตช่องจำนวนกลับเป็นค่าเริ่มต้น (1)
-    // ทำแบบแข็งแกร่ง: ตั้ง value ผ่าน DOM แล้ว dispatch events เพื่อให้ component รับรู้
-    // (รองรับกรณี input เป็น readonly หรือ component ใช้ event listeners)
-    await this.productQtyInput.evaluate((el: HTMLInputElement) => {
+  /**
+   * เพิ่มจำนวนสินค้า โดยการกดปุ่ม increment
+   * @param targetQuantity จำนวนสินค้าที่ต้องการ (สามารถส่งเป็น string หรือ number)
+   */
+  async increaseQuantityTo(targetQuantity: string | number): Promise<void> {
+    const quantity = typeof targetQuantity === 'string' ? parseInt(targetQuantity, 10) : targetQuantity;
+
+    // Reset ค่าจำนวนกลับเป็น 1 ก่อน
+    await this.productQtyInputLocator.evaluate((el: HTMLInputElement) => {
       el.value = '1';
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    // รองรับการส่งเป็น string หรือ number
-    const qtyNum = typeof targetQty === 'string' ? parseInt(targetQty, 10) : targetQty;
-
-    // ค่าเริ่มต้นเป็น 1 ดังนั้นกดจำนวน (qtyNum - 1) ครั้ง
-    const timesToClick = Math.max(0, qtyNum - 1);
-    for (let i = 0; i < timesToClick; i++) {
-      await this.qtyIncrementBtn.click();
+    // กด increment คำนวณจำนวนครั้ง (quantity - 1) เนื่องจากค่าเริ่มต้นคือ 1
+    const incrementCount = Math.max(0, quantity - 1);
+    for (let i = 0; i < incrementCount; i++) {
+      await this.clickElement(this.qtyIncrementBtnLocator);
     }
 
-    // ตรวจสอบว่าจำนวนเท่ากับที่ต้องการ
-    await expect(this.productQtyInput).toHaveValue(qtyNum.toString());
+    // ตรวจสอบว่าจำนวนถูกต้อง
+    await expect(this.productQtyInputLocator).toHaveValue(quantity.toString());
   }
 
-  // เทียบเท่า: ตรวจสอบเลขบนตระกร้าต้องมีประเภทสินค้า 1 ประเภท และคลิกตะกร้า
-  async verifyCartAndGoToCart(expectedCount: string) {
-    await expect(this.cartIconBadge).toContainText(expectedCount);
-    await this.cartIconBadge.click();
+  /**
+   * เพิ่มสินค้าลงตะกร้า
+   */
+  async addToCart(): Promise<void> {
+    await this.clickElement(this.addToCartBtnLocator);
+  }
+
+  /**
+   * ตรวจสอบจำนวนสินค้าในตะกร้า และคลิกไปที่หน้าตะกร้า
+   */
+  async verifyCartCountAndNavigateToCart(expectedCount: string): Promise<void> {
+    await expect(this.cartIconBadgeLocator).toContainText(expectedCount);
+    await this.clickElement(this.cartIconBadgeLocator);
   }
 }

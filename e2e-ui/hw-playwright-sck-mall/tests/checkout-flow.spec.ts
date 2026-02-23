@@ -1,87 +1,107 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { HomePage } from '../pages/HomePage';
 import { ProductPage } from '../pages/ProductPage';
 import { CartPage } from '../pages/CartPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
 
-test.describe('SCK-Shopping Mall Checkout Flow', () => {
+// ===== Test Data =====
+const PRODUCT_DATA = {
+  name: 'Balance Training Bicycle',
+  price: '4,314.60',
+  point: '43',
+  qty: '3',
+  price_total: '12,943.80',
+  points_total: '129'
+};
 
-  // กำหนดตัวแปรที่ใช้งานร่วมกัน (เทียบเท่า Test Variables)
-  const productData = {
-    name: 'Balance Training Bicycle',
-    price: '4,314.60', // เก็บแบบไม่มีสัญลักษณ์เพื่อความยืดหยุ่น
-    point: '43',
-    qty: '3',
-    price_total: '12,943.80', // คำนวณจากราคา × จำนวน
-    points_total: '129' // คำนวณจากแต้ม × จำนวน
-  };
+const SHIPPING_DATA = {
+  firstName: 'Thanawat',
+  lastName: 'Boon',
+  address: '205 เพชรเกษม',
+  province: 'กรุงเทพมหานคร',
+  district: 'เขตบางแค',
+  subDistrict: 'หลักสอง',
+  zipcode: '10160',
+  mobile: '0812345678'
+};
 
-  test('ลูกค้าเลือกซื้อสินค้าในเว็บไซต์ SCK-Shopping Mall', async ({ page }) => { //ลูกค้าซื้อสินค้าในเว็บไซต์ SCK-Shopping Mall สำเร็จ
-    // กำหนด Page Object ทั้งหมด
+const PAYMENT_DATA = {
+  cardholderName: 'Thanawat Boon',
+  cardNumber: '4111111111111111',
+  expiry: '12/25',
+  cvv: '123'
+};
+
+const OTP_CODE = '123456';
+const NOTIFICATION_EMAIL = 'thanawat123';
+const NOTIFICATION_MOBILE = '0812345678';
+
+// ===== Test Suite =====
+test.describe('SCK-Shopping Mall - Complete Checkout Flow', () => {
+  test('ลูกค้าสามารถซื้อสินค้าในเว็บไซต์ SCK-Shopping Mall ได้สำเร็จ', async ({ page }) => {
+    // Init Page Objects
     const homePage = new HomePage(page);
     const productPage = new ProductPage(page);
     const cartPage = new CartPage(page);
     const checkoutPage = new CheckoutPage(page);
 
-    await test.step('ลูกค้าเข้าสู่ระบบ', async () => {
-      await homePage.goto();
+    await test.step('01. ลูกค้าเข้าสู่ระบบ', async () => {
+      await homePage.gotoLoginPage();
       await homePage.login('user_6', 'P@ssw0rd');
     });
 
-    await test.step('ลูกค้าเปิดเว็บไซต์ SCK-Shopping Mall และใส่คำค้นหา Balance', async () => {
+    await test.step('02. ไปที่หน้าค้นหาสินค้าและค้นหา "Balance Training Bicycle"', async () => {
       await homePage.gotoProductList();
-      await homePage.fillSearchProduct('Balance Training Bicycle');
-      await homePage.submitSearch();
+      await homePage.fillSearchKeyword(PRODUCT_DATA.name);
+      await homePage.submitSearchKeyword();
     });
 
-    await test.step('ตรวจสอบผลลัพธ์การค้นหาและคลิกเลือกสินค้า Balance Training Bicycle', async () => {
-      await homePage.selectLatestProductAndVerify(productData.name);
+    await test.step('03. เลือกสินค้าจากผลลัพธ์การค้นหา', async () => {
+      await homePage.selectProductByName(PRODUCT_DATA.name);
     });
 
-    await test.step('ตรวจสอบราคาสินค้า จำนวน แต้ม และสินค้าคงเหลือในหน้า Product', async () => {
+    await test.step('04. ตรวจสอบรายละเอียดสินค้า', async () => {
       await productPage.verifyProductDetails(
-        productData.name, 
-        `฿${productData.price}`, 
-        `${productData.point} Points`
+        PRODUCT_DATA.name,
+        `฿${PRODUCT_DATA.price}`,
+        `${PRODUCT_DATA.point} Points`
       );
     });
 
-    await test.step('คลิกเลือกสินค้าลงตะกร้า และตรวจสอบตะกร้า', async () => {
-      await productPage.increaseQuantity(productData.qty);
+    await test.step('05. เพิ่มสินค้าลงตะกร้า', async () => {
+      await productPage.increaseQuantityTo(PRODUCT_DATA.qty);
       await productPage.addToCart();
-      await productPage.verifyCartAndGoToCart('1'); // ตรวจสอบว่า badge แสดงจำนวนชิ้นรวมเป็น 1
+      await productPage.verifyCartCountAndNavigateToCart('1');
     });
 
-    await test.step('ตรวจสอบรายการสินค้าในหน้าตะกร้า และดำเนินการชำระเงิน', async () => {
+    await test.step('06. ตรวจสอบข้อมูลสินค้าในตะกร้า', async () => {
       await cartPage.verifyCartItems(
-        productData.name,
-        productData.price_total,
-        productData.points_total,
-        productData.qty
-        // defect รอแจ้งเดฟ ปัดเศษผิด => // Expected: "฿12,943.80" , Received: "฿12,943.79"
-        // productData.price_total
+        PRODUCT_DATA.name,
+        PRODUCT_DATA.price_total,
+        PRODUCT_DATA.points_total,
+        PRODUCT_DATA.qty
       );
       await cartPage.proceedToCheckout();
     });
 
-    await test.step('ตรวจสอบผลลัพธ์ในหน้าข้อมูลการจัดส่งคำสั่งซื้อ', async () => {
+    await test.step('07. ตรวจสอบข้อมูลสินค้าในหน้า Checkout', async () => {
       await checkoutPage.verifyInitialCheckoutInfo();
     });
 
-    await test.step('ยืนยันข้อมูลการจัดส่งคำสั่งซื้อ (กรอกข้อมูลส่วนตัว, ที่อยู่, วิธีจัดส่ง, บัตรเครดิต)', async () => {
-      const securityCode = '123';
-      await checkoutPage.fillShippingAndPaymentInfo(securityCode);
+    await test.step('08. กรอกข้อมูลการจัดส่งและบัตรเครดิต', async () => {
+      await checkoutPage.fillShippingAndPaymentInfo(PAYMENT_DATA.cvv);
+    });
+
+    await test.step('09. ตรวจสอบ Order Summary และชำระเงิน', async () => {
       await checkoutPage.verifyOrderSummaryAndPay();
     });
 
-    await test.step('กรอกรหัสรหัสผ่านครั้งเดียว (OTP)', async () => {
-      const otpCode = '123456';
-      await checkoutPage.submitOTP(otpCode);
+    await test.step('10. กรอกรหัส OTP', async () => {
+      await checkoutPage.submitOTP(OTP_CODE);
     });
 
-    await test.step('กรอกอีเมลเบอร์โทรเพื่อรับข่าวสารโปรโมชั่น', async () => {
-      await checkoutPage.subscribeNotification('thanawat123', '0812345678');
+    await test.step('11. ลงทะเบียนอีเมลและเบอร์โทรเพื่อรับข่าวสาร', async () => {
+      await checkoutPage.subscribeToNotification(NOTIFICATION_EMAIL, NOTIFICATION_MOBILE);
     });
-
   });
 });

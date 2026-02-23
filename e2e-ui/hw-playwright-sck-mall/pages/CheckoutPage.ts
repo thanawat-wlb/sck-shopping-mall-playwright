@@ -1,138 +1,292 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class CheckoutPage {
-  readonly page: Page;
-  
-  // Locators ข้อมูลสินค้าเบื้องต้น
-  readonly productName: Locator;
-  readonly productQty: Locator;
-  readonly productPrice: Locator;
-  readonly productPoint: Locator;
-  readonly productStock: Locator;
+/**
+ * CheckoutPage class จัดการหน้า Checkout (Shipping, Payment, OTP, Notification)
+ */
+export class CheckoutPage extends BasePage {
+  // ===== Selectors =====
+  private readonly SELECTORS = {
+    // Product Info
+    product: {
+      name: '#product-1-name',
+      qtyInput: '#product-1-quantity-input',
+      price: '#product-1-price',
+      point: '#product-1-point',
+      stock: '#product-1-stock'
+    },
+    // Shipping Form
+    shipping: {
+      firstNameInput: '#shipping-form-first-name-input',
+      lastNameInput: '#shipping-form-last-name-input',
+      addressInput: '#shipping-form-address-input',
+      provinceSelect: '#shipping-form-province-select',
+      districtSelect: '#shipping-form-district-select',
+      subDistrictSelect: '#shipping-form-sub-district-select',
+      zipcodeInput: '#shipping-form-zipcode-input',
+      mobileInput: '#shipping-form-mobile-input',
+      shippingMethodBtn: '#shipping-method-1-name'
+    },
+    // Credit Card Payment Form
+    payment: {
+      ccNameInput: '#payment-credit-form-fullname-input',
+      ccNumberInput: '#payment-credit-form-card-number-input',
+      ccExpiryInput: '#payment-credit-form-expiry-input',
+      ccCvvInput: '#payment-credit-form-cvv-input'
+    },
+    // Order Summary
+    summary: {
+      subtotal: '#order-summary-subtotal-price',
+      point: '#order-summary-receive-point-price',
+      shippingFee: '#order-summary-shipping-fee-price',
+      total: '#order-summary-total-payment-price',
+      payNowBtn: '#payment-now-btn'
+    },
+    // OTP
+    otp: {
+      input: '#otp-input',
+      submitBtn: "button:has-text('OK')"
+    },
+    // Notification Subscription
+    notification: {
+      emailInput: '#notification-form-email-input',
+      mobileInput: '#notification-form-mobile-input',
+      sendBtn: '#send-notification-btn'
+    }
+  };
 
-  // Locators ข้อมูลจัดส่งและบัตรเครดิต
-  readonly firstNameInput: Locator;
-  readonly lastNameInput: Locator;
-  readonly addressInput: Locator;
-  readonly provinceSelect: Locator;
-  readonly districtSelect: Locator;
-  readonly subDistrictSelect: Locator;
-  readonly zipcodeInput: Locator;
-  readonly mobileInput: Locator;
-  readonly shippingMethodBtn: Locator;
-  
-  readonly ccNameInput: Locator;
-  readonly ccNumberInput: Locator;
-  readonly ccExpiryInput: Locator;
-  readonly ccCvvInput: Locator;
-  
-  // Locators ยืนยันคำสั่งซื้อ
-  readonly summarySubtotal: Locator;
-  readonly summaryPoint: Locator;
-  readonly summaryShippingFee: Locator;
-  readonly summaryTotal: Locator;
-  readonly payNowBtn: Locator;
+  // ===== Locators - Product Info =====
+  private readonly productNameLocator: Locator;
+  private readonly productQtyLocator: Locator;
+  private readonly productPriceLocator: Locator;
+  private readonly productPointLocator: Locator;
+  private readonly productStockLocator: Locator;
 
-  // Locators OTP และ Notification
-  readonly otpInput: Locator;
-  readonly otpSubmitBtn: Locator;
-  readonly notifEmailInput: Locator;
-  readonly notifMobileInput: Locator;
-  readonly sendNotifBtn: Locator;
+  // ===== Locators - Shipping Form =====
+  private readonly firstNameInputLocator: Locator;
+  private readonly lastNameInputLocator: Locator;
+  private readonly addressInputLocator: Locator;
+  private readonly provinceSelectLocator: Locator;
+  private readonly districtSelectLocator: Locator;
+  private readonly subDistrictSelectLocator: Locator;
+  private readonly zipcodeInputLocator: Locator;
+  private readonly mobileInputLocator: Locator;
+  private readonly shippingMethodBtnLocator: Locator;
 
-  constructor(page: Page) {
-    this.page = page;
-    
-    this.productName = page.locator('#product-1-name');
-    this.productQty = page.locator('#product-1-quantity-input');
-    this.productPrice = page.locator('#product-1-price');
-    this.productPoint = page.locator('#product-1-point');
-    this.productStock = page.locator('#product-1-stock');
+  // ===== Locators - Credit Card Payment =====
+  private readonly ccNameInputLocator: Locator;
+  private readonly ccNumberInputLocator: Locator;
+  private readonly ccExpiryInputLocator: Locator;
+  private readonly ccCvvInputLocator: Locator;
 
-    this.firstNameInput = page.locator('#shipping-form-first-name-input');
-    this.lastNameInput = page.locator('#shipping-form-last-name-input');
-    this.addressInput = page.locator('#shipping-form-address-input');
-    this.provinceSelect = page.locator('#shipping-form-province-select');
-    this.districtSelect = page.locator('#shipping-form-district-select');
-    this.subDistrictSelect = page.locator('#shipping-form-sub-district-select');
-    this.zipcodeInput = page.locator('#shipping-form-zipcode-input');
-    this.mobileInput = page.locator('#shipping-form-mobile-input');
-    this.shippingMethodBtn = page.locator('#shipping-method-1-name');
+  // ===== Locators - Order Summary =====
+  private readonly summarySubtotalLocator: Locator;
+  private readonly summaryPointLocator: Locator;
+  private readonly summaryShippingFeeLocator: Locator;
+  private readonly summaryTotalLocator: Locator;
+  private readonly payNowBtnLocator: Locator;
 
-    this.ccNameInput = page.locator('#payment-credit-form-fullname-input');
-    this.ccNumberInput = page.locator('#payment-credit-form-card-number-input');
-    this.ccExpiryInput = page.locator('#payment-credit-form-expiry-input');
-    this.ccCvvInput = page.locator('#payment-credit-form-cvv-input');
+  // ===== Locators - OTP & Notification =====
+  private readonly otpInputLocator: Locator;
+  private readonly otpSubmitBtnLocator: Locator;
+  private readonly notifEmailInputLocator: Locator;
+  private readonly notifMobileInputLocator: Locator;
+  private readonly sendNotifBtnLocator: Locator;
 
-    this.summarySubtotal = page.locator('#order-summary-subtotal-price');
-    this.summaryPoint = page.locator('#order-summary-receive-point-price');
-    this.summaryShippingFee = page.locator('#order-summary-shipping-fee-price');
-    this.summaryTotal = page.locator('#order-summary-total-payment-price');
-    this.payNowBtn = page.locator('#payment-now-btn');
+  constructor(page) {
+    super(page);
 
-    this.otpInput = page.locator('#otp-input');
-    // Playwright สามารถค้นหาปุ่มจากข้อความได้เลย
-    this.otpSubmitBtn = page.locator('button', { hasText: 'OK' });
-    
-    this.notifEmailInput = page.locator('#notification-form-email-input');
-    this.notifMobileInput = page.locator('#notification-form-mobile-input');
-    this.sendNotifBtn = page.locator('#send-notification-btn');
+    // Initialize Product Info Locators
+    this.productNameLocator = page.locator(this.SELECTORS.product.name);
+    this.productQtyLocator = page.locator(this.SELECTORS.product.qtyInput);
+    this.productPriceLocator = page.locator(this.SELECTORS.product.price);
+    this.productPointLocator = page.locator(this.SELECTORS.product.point);
+    this.productStockLocator = page.locator(this.SELECTORS.product.stock);
+
+    // Initialize Shipping Form Locators
+    this.firstNameInputLocator = page.locator(this.SELECTORS.shipping.firstNameInput);
+    this.lastNameInputLocator = page.locator(this.SELECTORS.shipping.lastNameInput);
+    this.addressInputLocator = page.locator(this.SELECTORS.shipping.addressInput);
+    this.provinceSelectLocator = page.locator(this.SELECTORS.shipping.provinceSelect);
+    this.districtSelectLocator = page.locator(this.SELECTORS.shipping.districtSelect);
+    this.subDistrictSelectLocator = page.locator(this.SELECTORS.shipping.subDistrictSelect);
+    this.zipcodeInputLocator = page.locator(this.SELECTORS.shipping.zipcodeInput);
+    this.mobileInputLocator = page.locator(this.SELECTORS.shipping.mobileInput);
+    this.shippingMethodBtnLocator = page.locator(this.SELECTORS.shipping.shippingMethodBtn);
+
+    // Initialize Credit Card Payment Locators
+    this.ccNameInputLocator = page.locator(this.SELECTORS.payment.ccNameInput);
+    this.ccNumberInputLocator = page.locator(this.SELECTORS.payment.ccNumberInput);
+    this.ccExpiryInputLocator = page.locator(this.SELECTORS.payment.ccExpiryInput);
+    this.ccCvvInputLocator = page.locator(this.SELECTORS.payment.ccCvvInput);
+
+    // Initialize Order Summary Locators
+    this.summarySubtotalLocator = page.locator(this.SELECTORS.summary.subtotal);
+    this.summaryPointLocator = page.locator(this.SELECTORS.summary.point);
+    this.summaryShippingFeeLocator = page.locator(this.SELECTORS.summary.shippingFee);
+    this.summaryTotalLocator = page.locator(this.SELECTORS.summary.total);
+    this.payNowBtnLocator = page.locator(this.SELECTORS.summary.payNowBtn);
+
+    // Initialize OTP & Notification Locators
+    this.otpInputLocator = page.locator(this.SELECTORS.otp.input);
+    this.otpSubmitBtnLocator = page.locator(this.SELECTORS.otp.submitBtn);
+    this.notifEmailInputLocator = page.locator(this.SELECTORS.notification.emailInput);
+    this.notifMobileInputLocator = page.locator(this.SELECTORS.notification.mobileInput);
+    this.sendNotifBtnLocator = page.locator(this.SELECTORS.notification.sendBtn);
   }
 
-  // เทียบเท่า: ตรวจสอบผลลัพธ์ในหน้าข้อมูลการจัดส่งคำสั่งซื้อ //checkout
-  async verifyInitialCheckoutInfo() {
-    await expect(this.productName).toHaveText('Balance Training Bicycle');
-    await expect(this.productQty).toHaveValue('3');
-    await expect(this.productPrice).toHaveText('฿12,943.80');
-    await expect(this.productPoint).toHaveText('129 Points');
-    await expect(this.productStock).not.toHaveText('0');
+  // ===== Assertion Methods =====
+
+  /**
+   * ตรวจสอบข้อมูลสินค้าเบื้องต้นในหน้า Checkout
+   */
+  async verifyInitialCheckoutInfo(): Promise<void> {
+    await expect(this.productNameLocator).toHaveText('Balance Training Bicycle');
+    await expect(this.productQtyLocator).toHaveValue('3');
+    await expect(this.productPriceLocator).toHaveText('฿12,943.80');
+    await expect(this.productPointLocator).toHaveText('129 Points');
+    await expect(this.productStockLocator).not.toHaveText('0');
   }
 
-  // เทียบเท่า: ยืนยันข้อมูลการจัดส่งคำสั่งซื้อ (กรอกข้อมูลทั้งหมด)
-  async fillShippingAndPaymentInfo(cvv: string) {
-    await this.firstNameInput.fill('Thanawat');
-    await this.lastNameInput.fill('Boon');
-    await this.addressInput.fill('205 เพชรเกษม');
-
-    // การทำ Select Option ใน Playwright
-    await this.provinceSelect.selectOption({ label: 'กรุงเทพมหานคร' });
-    await this.districtSelect.selectOption({ label: 'เขตบางแค' });
-    await this.subDistrictSelect.selectOption({ label: 'หลักสอง' });
-    
-    // ตรวจสอบ zipcode ที่ระบบ Auto-fill ให้
-    await expect(this.zipcodeInput).toHaveValue('10160');
-    
-    await this.mobileInput.fill('0812345678');
-    await this.shippingMethodBtn.click();
-
-    // ข้อมูลบัตรเครดิต
-    await this.ccNameInput.fill('Thanawat Boon');
-    await this.ccNumberInput.fill('4111111111111111');
-    await this.ccExpiryInput.fill('12/25');
-    await this.ccCvvInput.fill(cvv);
+  /**
+   * ตรวจสอบข้อมูล Order Summary
+   */
+  async verifyOrderSummary(
+    expectedPoint?: string,
+    expectedShippingFee?: string,
+    expectedSubtotal?: string,
+    expectedTotal?: string
+  ): Promise<void> {
+    if (expectedPoint) {
+      await expect(this.summaryPointLocator).toHaveText(expectedPoint);
+    }
+    if (expectedShippingFee) {
+      await expect(this.summaryShippingFeeLocator).toHaveText(expectedShippingFee);
+    }
+    if (expectedSubtotal) {
+      await expect(this.summarySubtotalLocator).toHaveText(expectedSubtotal);
+    }
+    if (expectedTotal) {
+      await expect(this.summaryTotalLocator).toHaveText(expectedTotal);
+    }
   }
 
-  // เทียบเท่า: ตรวจสอบ Summary และกดชำระเงิน
-  async verifyOrderSummaryAndPay() {
-    // await expect(this.summarySubtotal).toHaveText('฿12,943.80');
-    await expect(this.summaryPoint).toHaveText('129 Points');
-    await expect(this.summaryShippingFee).toHaveText('฿50.00');
-    // await expect(this.summaryTotal).toHaveText('฿12,993.80');
-    await this.payNowBtn.click();
+  // ===== Action Methods - Shipping Form =====
+
+  /**
+   * กรอกข้อมูลการจัดส่ง (ชื่อ, นามสกุล, ที่อยู่, จังหวัด, อำเภอ, ตำบล, รหัสไปรษณีย์, เบอร์โทร)
+   */
+  async fillShippingInfo(
+    firstName: string,
+    lastName: string,
+    address: string,
+    province: string,
+    district: string,
+    subDistrict: string,
+    mobile: string
+  ): Promise<void> {
+    await this.fillInput(this.firstNameInputLocator, firstName);
+    await this.fillInput(this.lastNameInputLocator, lastName);
+    await this.fillInput(this.addressInputLocator, address);
+    await this.selectOption(this.provinceSelectLocator, { label: province });
+    await this.selectOption(this.districtSelectLocator, { label: district });
+    await this.selectOption(this.subDistrictSelectLocator, { label: subDistrict });
+    await this.fillInput(this.mobileInputLocator, mobile);
   }
 
-  // เทียบเท่า: กรอกรหัสรหัสผ่านครั้งเดียว(OTP)
-  async submitOTP(otpCode: string) {
-    await this.otpInput.waitFor({ state: 'visible' });
-    await this.otpInput.fill(otpCode);
-    await this.otpSubmitBtn.click();
+  /**
+   * ตรวจสอบ Zipcode ที่ Auto-fill โดยระบบ
+   */
+  async verifyZipcode(expectedZipcode: string): Promise<void> {
+    await expect(this.zipcodeInputLocator).toHaveValue(expectedZipcode);
   }
 
-  // เทียบเท่า: กรอกอีเมลเบอร์โทรเพื่อรับข่าวสารโปรโมชั่น
-  async subscribeNotification(email: string, mobile: string) {
-    await this.notifEmailInput.waitFor({ state: 'visible' });
-    await this.notifEmailInput.fill(email);
-    await this.notifMobileInput.fill(mobile);
-    await this.sendNotifBtn.click();
+  /**
+   * เลือกวิธีการจัดส่ง
+   */
+  async selectShippingMethod(): Promise<void> {
+    await this.clickElement(this.shippingMethodBtnLocator);
+  }
+
+  // ===== Action Methods - Payment Form =====
+
+  /**
+   * กรอกข้อมูลบัตรเครดิต (ชื่อ, เลขบัตร, วันหมดอายุ, CVV)
+   */
+  async fillPaymentInfo(
+    cardholderName: string,
+    cardNumber: string,
+    expiry: string,
+    cvv: string
+  ): Promise<void> {
+    await this.fillInput(this.ccNameInputLocator, cardholderName);
+    await this.fillInput(this.ccNumberInputLocator, cardNumber);
+    await this.fillInput(this.ccExpiryInputLocator, expiry);
+    await this.fillInput(this.ccCvvInputLocator, cvv);
+  }
+
+  // ===== Action Methods - Checkout Flow =====
+
+  /**
+   * ดำเนินการจัดส่งและชำระเงิน (شامل ข้อมูลส่วนตัว + ที่อยู่ + วิธีจัดส่ง + บัตรเครดิต)
+   */
+  async fillShippingAndPaymentInfo(cvv: string): Promise<void> {
+    await this.fillShippingInfo(
+      'Thanawat',
+      'Boon',
+      '205 เพชรเกษม',
+      'กรุงเทพมหานคร',
+      'เขตบางแค',
+      'หลักสอง',
+      '0812345678'
+    );
+
+    // ตรวจสอบ zipcode ที่ Auto-fill
+    await this.verifyZipcode('10160');
+
+    // เลือกวิธีการจัดส่ง
+    await this.selectShippingMethod();
+
+    // กรอกข้อมูลบัตรเครดิต
+    await this.fillPaymentInfo(
+      'Thanawat Boon',
+      '4111111111111111',
+      '12/25',
+      cvv
+    );
+  }
+
+  /**
+   * ตรวจสอบ Order Summary และทำการชำระเงิน
+   */
+  async verifyOrderSummaryAndPay(): Promise<void> {
+    await this.verifyOrderSummary(
+      '129 Points',
+      '฿50.00'
+    );
+    await this.clickElement(this.payNowBtnLocator);
+  }
+
+  // ===== Action Methods - OTP =====
+
+  /**
+   * กรอก OTP (One-Time Password)
+   */
+  async submitOTP(otpCode: string): Promise<void> {
+    await this.waitForVisible(this.otpInputLocator);
+    await this.fillInput(this.otpInputLocator, otpCode);
+    await this.clickElement(this.otpSubmitBtnLocator);
+  }
+
+  // ===== Action Methods - Notification Subscription =====
+
+  /**
+   * ลงทะเบียนอีเมลและเบอร์โทรเพื่อรับข่าวสาร
+   */
+  async subscribeToNotification(email: string, mobile: string): Promise<void> {
+    await this.waitForVisible(this.notifEmailInputLocator);
+    await this.fillInput(this.notifEmailInputLocator, email);
+    await this.fillInput(this.notifMobileInputLocator, mobile);
+    await this.clickElement(this.sendNotifBtnLocator);
   }
 }

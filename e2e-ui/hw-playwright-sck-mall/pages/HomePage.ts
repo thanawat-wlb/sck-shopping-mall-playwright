@@ -1,53 +1,101 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class HomePage {
-  readonly page: Page;
-  readonly searchInput: Locator;
+/**
+ * HomePage class จัดการหน้า Login และ Product List Search
+ */
+export class HomePage extends BasePage {
+  // ===== Selectors =====
+  private readonly SELECTORS = {
+    LOGIN: {
+      usernameInput: '#login-username-input',
+      passwordInput: '#login-password-input',
+      submitBtn: '#login-btn-txt'
+    },
+    SEARCH: {
+      searchInput: '#search-product-input',
+      productCards: "[id^='product-card-name-']"
+    }
+  };
 
-  constructor(page: Page) {
-    this.page = page;
-    this.searchInput = page.locator('#search-product-input');
+  // ===== Locators =====
+  private readonly loginUsernameInput: Locator;
+  private readonly loginPasswordInput: Locator;
+  private readonly loginSubmitBtn: Locator;
+  private readonly searchInput: Locator;
+
+  constructor(page) {
+    super(page);
+    this.loginUsernameInput = page.locator(this.SELECTORS.LOGIN.usernameInput);
+    this.loginPasswordInput = page.locator(this.SELECTORS.LOGIN.passwordInput);
+    this.loginSubmitBtn = page.locator(this.SELECTORS.LOGIN.submitBtn);
+    this.searchInput = page.locator(this.SELECTORS.SEARCH.searchInput);
   }
 
-  async goto() {
-    // ไปที่หน้า Login ก่อน
-    await this.page.goto('/auth/login');
+  // ===== Navigation Methods =====
+
+  /**
+   * ไปที่หน้า Login
+   */
+  async gotoLoginPage(): Promise<void> {
+    await this.goto('/auth/login');
   }
 
-  async gotoProductList() {
-    // ไปที่หน้า Product List
-    await this.page.goto('/product/list');
+  /**
+   * ไปที่หน้า Product List
+   */
+  async gotoProductList(): Promise<void> {
+    await this.goto('/product/list');
   }
 
-  async login(username: string, password: string) {
-    await this.page.locator('#login-username-input').fill(username);
-    await this.page.locator('#login-password-input').fill(password);
-    await this.page.locator('#login-btn-txt').click();
-    // รอให้ login สำเร็จและหน้าโหลด
-    await this.page.waitForNavigation();
+  // ===== Authentication Methods =====
+
+  /**
+   * ทำการ Login ด้วย username และ password
+   */
+  async login(username: string, password: string): Promise<void> {
+    await this.fillInput(this.loginUsernameInput, username);
+    await this.fillInput(this.loginPasswordInput, password);
+    await this.clickElement(this.loginSubmitBtn);
+    await this.waitForNavigation();
   }
 
-  async searchProduct(keyword: string) {
-    await this.searchInput.fill(keyword);
+  // ===== Search Methods =====
+
+  /**
+   * ค้นหาสินค้า (fill และ submit โดยการกด Enter)
+   */
+  async searchProduct(keyword: string): Promise<void> {
+    await this.fillInput(this.searchInput, keyword);
     await this.searchInput.press('Enter');
   }
 
-  async fillSearchProduct(keyword: string) {
-    await this.searchInput.fill(keyword);
+  /**
+   * กรอกคำค้นหาไปในช่อง search
+   */
+  async fillSearchKeyword(keyword: string): Promise<void> {
+    await this.fillInput(this.searchInput, keyword);
   }
 
-  async submitSearch() {
+  /**
+   * ทำการ submit search โดยการกด Enter
+   */
+  async submitSearchKeyword(): Promise<void> {
     await this.searchInput.press('Enter');
   }
 
-  async selectLatestProductAndVerify(expectedProductName: string) {
-    // รอให้สินค้าโหลด (หาจาก id ที่ขึ้นต้นด้วย product-card-name-)
-    const productCards = this.page.locator("[id^='product-card-name-']");
-    await productCards.first().waitFor({ state: 'visible' });
+  /**
+   * เลือกสินค้าจาก search results และตรวจสอบชื่อ
+   */
+  async selectProductByName(productName: string): Promise<void> {
+    const productCardsLocator = this.page.locator(this.SELECTORS.SEARCH.productCards);
+    await this.waitForVisible(productCardsLocator.first());
 
-    // หาสินค้าตามชื่อ (ไม่ใช่ ID cứng)
-    const targetProduct = this.page.locator(`[id^='product-card-name-']:has-text("${expectedProductName}")`);
-    await expect(targetProduct).toHaveText(expectedProductName);
-    await targetProduct.click();
+    const targetProduct = this.page.locator(
+      `${this.SELECTORS.SEARCH.productCards}:has-text("${productName}")`
+    );
+    
+    await expect(targetProduct).toHaveText(productName);
+    await this.clickElement(targetProduct);
   }
 }

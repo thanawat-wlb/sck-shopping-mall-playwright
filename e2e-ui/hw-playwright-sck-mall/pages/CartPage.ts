@@ -1,38 +1,71 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class CartPage {
-  readonly page: Page;
-  readonly productName: Locator;
-  readonly productPrice: Locator;
-  readonly productPoint: Locator;
-  readonly productQtyInput: Locator;
-  readonly subtotalPrice: Locator;
-  readonly checkoutBtn: Locator;
+/**
+ * CartPage class จัดการหน้า Shopping Cart
+ */
+export class CartPage extends BasePage {
+  // ===== Selectors =====
+  private readonly SELECTORS = {
+    productName: '#product-1-name',
+    productPrice: '#product-1-price',
+    productPoint: '#product-1-point',
+    productQtyInput: '#product-1-quantity-input',
+    subtotalPrice: '#shopping-cart-subtotal-price',
+    checkoutBtn: '#shopping-cart-checkout-btn'
+  };
 
-  constructor(page: Page) {
-    this.page = page;
-    this.productName = page.locator('#product-1-name');
-    this.productPrice = page.locator('#product-1-price');
-    this.productPoint = page.locator('#product-1-point');
-    this.productQtyInput = page.locator('#product-1-quantity-input');
-    this.subtotalPrice = page.locator('#shopping-cart-subtotal-price');
-    this.checkoutBtn = page.locator('#shopping-cart-checkout-btn');
+  // ===== Locators =====
+  private readonly productNameLocator: Locator;
+  private readonly productPriceLocator: Locator;
+  private readonly productPointLocator: Locator;
+  private readonly productQtyInputLocator: Locator;
+  private readonly subtotalPriceLocator: Locator;
+  private readonly checkoutBtnLocator: Locator;
+
+  constructor(page) {
+    super(page);
+    this.productNameLocator = page.locator(this.SELECTORS.productName);
+    this.productPriceLocator = page.locator(this.SELECTORS.productPrice);
+    this.productPointLocator = page.locator(this.SELECTORS.productPoint);
+    this.productQtyInputLocator = page.locator(this.SELECTORS.productQtyInput);
+    this.subtotalPriceLocator = page.locator(this.SELECTORS.subtotalPrice);
+    this.checkoutBtnLocator = page.locator(this.SELECTORS.checkoutBtn);
   }
 
-  // เทียบเท่า: ตรวจสอบราคา สินค้า ... ในหน้าตระกร้า base/product/1
-  async verifyCartItems(name: string, price_total: string, points_total: string, qty: string){ //,subtotal: string) {
-    // รอให้ราคาโหลดขึ้นมาก่อนทำ action อื่น
-    await this.productPrice.waitFor({ state: 'visible' }); 
-    
-    await expect(this.productName).toHaveText(name);
-    await expect(this.productPrice).toHaveText(`฿${price_total}`);
-    await expect(this.productPoint).toHaveText(`${points_total} Points`);
-    await expect(this.productQtyInput).toHaveValue(qty);
-    // await expect(this.subtotalPrice).toHaveText(`฿${subtotal}`);
+  // ===== Assertion Methods =====
+
+  /**
+   * ตรวจสอบข้อมูลสินค้าในตะกร้า (ชื่อ, ราคา, แต้ม, จำนวน)
+   */
+  async verifyCartItems(
+    expectedName: string,
+    expectedPrice: string,
+    expectedPoints: string,
+    expectedQuantity: string
+  ): Promise<void> {
+    // รอให้ราคาโหลดขึ้นมาก่อนทำ assertion
+    await this.waitForVisible(this.productPriceLocator);
+
+    await expect(this.productNameLocator).toHaveText(expectedName);
+    await expect(this.productPriceLocator).toHaveText(`฿${expectedPrice}`);
+    await expect(this.productPointLocator).toHaveText(`${expectedPoints} Points`);
+    await expect(this.productQtyInputLocator).toHaveValue(expectedQuantity);
   }
 
-  // เทียบเท่า: คลิกการชำระเงิน(checkout)
-  async proceedToCheckout() {
-    await this.checkoutBtn.click();
+  /**
+   * ตรวจสอบราคา Subtotal (optional)
+   */
+  async verifySubtotalPrice(expectedSubtotal: string): Promise<void> {
+    await expect(this.subtotalPriceLocator).toHaveText(`฿${expectedSubtotal}`);
+  }
+
+  // ===== Action Methods =====
+
+  /**
+   * ดำเนินการไปยังหน้า Checkout
+   */
+  async proceedToCheckout(): Promise<void> {
+    await this.clickElement(this.checkoutBtnLocator);
   }
 }

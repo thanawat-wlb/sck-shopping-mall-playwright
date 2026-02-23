@@ -63,4 +63,123 @@ export class BasePage {
   async waitForNavigation(): Promise<void> {
     await this.page.waitForNavigation();
   }
+
+  // ===== Stub/Mock Methods =====
+
+  /**
+   * Mock payment gateway API เพื่อไม่ให้ยิง DB จริง
+   * ใช้กรณี: OTP verification, Payment processing
+   */
+  async stubPaymentGateway(options?: { successResponse?: boolean; delayMs?: number }): Promise<void> {
+    const { successResponse = true, delayMs = 500 } = options || {};
+
+    // Stub OTP verification endpoint
+    await this.page.route('**/payment/**', async (route) => {
+      // Simulate network delay
+      if (delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+
+      if (successResponse) {
+        // Mock successful response
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            message: 'OTP verified successfully',
+            transactionId: 'TXN-' + Date.now()
+          })
+        });
+      } else {
+        // Mock failed response
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: 'Invalid OTP'
+          })
+        });
+      }
+    });
+  }
+
+  /**
+   * Mock any API endpoint with custom response
+   */
+  async stubApiEndpoint(
+    urlPattern: string,
+    responseBody: Record<string, any>,
+    statusCode: number = 200
+  ): Promise<void> {
+    await this.page.route(urlPattern, async (route) => {
+      await route.fulfill({
+        status: statusCode,
+        contentType: 'application/json',
+        body: JSON.stringify(responseBody)
+      });
+    });
+  }
+
+  /**
+   * Clear all route stubs
+   */
+  async clearStubs(): Promise<void> {
+    await this.page.unroute('**/*');
+  }
+
+  // ===== Product Stock Stub Methods =====
+
+  /**
+   * Stub product stock data เพื่อไม่ให้ไปยิง DB จริง
+   * Mock response ให้ stock > 0
+   */
+  async stubProductStock(stockAmount: number = 56): Promise<void> {
+    await this.page.route('**/product/**', async (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+
+      // เฉพาะ GET requests สำหรับดึง product info
+      if (request.method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: {
+              id: 1,
+              name: 'Balance Training Bicycle',
+              price: 4314.60,
+              points: 43,
+              stock: stockAmount, // Mock stock amount
+              description: 'Mock product data'
+            }
+          })
+        });
+        return;
+      }
+
+      // ส่วนอื่นให้ผ่านตามปกติ
+      await route.continue();
+    });
+  }
+
+  /**
+   * Stub product stock ให้เป็น 0 (out of stock)
+   */
+  async stubProductStockOutOfStock(): Promise<void> {
+    await this.stubProductStock(0);
+  }
+
+  /**
+   * Mock DOM element stock text โดยตรง (ไม่ต้องเรียก API)
+   * วิธีนี้เร็วกว่า ใช้สำหรับ UI test ที่ไม่ต้อง API
+   */
+  async mockStockTextInDOM(locator: Locator, stockAmount: number): Promise<void> {
+    const displayText = stockAmount === 0 ? 'Out of Stock' : `Stock ${stockAmount} items`;
+    await locator.evaluate((el, text) => {
+      el.textContent = text;
+    }, displayText);
+  }
 }

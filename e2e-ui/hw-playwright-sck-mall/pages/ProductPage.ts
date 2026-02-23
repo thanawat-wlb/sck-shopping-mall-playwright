@@ -56,6 +56,41 @@ export class ProductPage extends BasePage {
     await expect(this.productStockLocator).not.toHaveText('0');
   }
 
+  /**
+   * ตรวจสอบข้อมูลสินค้า (ชื่อ, ราคา, แต้ม) โดยใช้ Stub Stock
+   * ไม่ต้องไปเรียก DB ของ stock จริง - ใช้ mock response แทน
+   */
+  async verifyProductDetailsWithStub(
+    expectedName: string,
+    expectedPrice: string,
+    expectedPoint: string,
+    stubStockAmount: number = 56
+  ): Promise<void> {
+    // Stub stock API เพื่อไม่ให้ไปยิง DB จริง
+    await this.stubProductStock(stubStockAmount);
+
+    await expect(this.productNameLocator).toHaveText(expectedName);
+    await expect(this.productQtyInputLocator).toHaveValue('1');
+    await expect(this.productPriceLocator).toHaveText(expectedPrice);
+    await expect(this.productPointLocator).toHaveText(expectedPoint);
+
+    // ตรวจสอบว่า stock ไม่เป็น 0 (mock response ก็ส่ง stubStockAmount แล้ว)
+    await expect(this.productStockLocator).not.toHaveText('0');
+  }
+
+  /**
+   * ตรวจสอบสินค้า out of stock (stub stock = 0)
+   */
+  async verifyProductOutOfStock(
+    expectedName: string
+  ): Promise<void> {
+    // Stub stock เป็น 0
+    await this.stubProductStockOutOfStock();
+
+    await expect(this.productNameLocator).toHaveText(expectedName);
+    await expect(this.productStockLocator).toHaveText('0');
+  }
+
   // ===== Action Methods =====
 
   /**
@@ -93,7 +128,7 @@ export class ProductPage extends BasePage {
    * ตรวจสอบจำนวนสินค้าในตะกร้า และคลิกไปที่หน้าตะกร้า
    */
   async verifyCartCountAndNavigateToCart(expectedCount: string): Promise<void> {
-    await expect(this.cartIconBadgeLocator).toContainText(expectedCount);
+    await expect(this.cartIconBadgeLocator).toHaveText(expectedCount);
     await this.clickElement(this.cartIconBadgeLocator);
   }
 }

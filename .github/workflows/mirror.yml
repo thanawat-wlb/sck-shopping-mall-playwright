@@ -19,7 +19,7 @@ jobs:
 
       - name: Push to mirror repository
         env:
-          DEST_GITHUB_TOKEN: ${{ secrets.DESTINATION_GITHUB_TOKEN }}
+          DEST_GITHUB_TOKEN: ${{ secrets.DESTINATION_PERSONAL_GITHUB_TOKEN }}
           DEST_GITHUB_USERNAME: "thanawat-hub" 
           # แก้ไข 1: เปลี่ยนชื่อ Repo ให้ตรงกับปลายทาง
           DEST_REPO: "sck-shopping-mall-playwright" 

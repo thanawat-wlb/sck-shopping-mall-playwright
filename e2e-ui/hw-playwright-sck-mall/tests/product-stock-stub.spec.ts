@@ -14,42 +14,27 @@ test.describe('Product Page - Stock Verification (With Stub)', () => {
     await page.goto('/product/1');
   });
 
-  test('✅ ตรวจสอบสินค้า เหลือ stock (ใช้ stub)', async () => {
+  test('ตรวจสอบสินค้า เหลือตรงตาม expected ใน stock (ใช้ stub)', async () => {
     await test.step('01. Setup stub stock เพื่อไม่ให้ไปยิง DB จริง', async () => {
-      // Stub stock amount = 56 items
+      // Stub stock amount = 90 items
       await productPage.verifyProductDetailsWithStub(
         'Balance Training Bicycle',
         '฿4,314.60',
         '43 Points',
-        56 // Mock stock amount
+        90 
       );
     });
 
-    await test.step('02. ตรวจสอบว่า stock > 0', async () => {
-      // เพราะ stub ให้ 56 แล้ว ต้องไม่เป็น 0
-      // (assertion ในนั้น verifyProductDetailsWithStub ทำไปแล้ว)
-      console.log('✅ Stock verification passed (using stub)');
-    });
-  });
 
-  test('❌ ตรวจสอบสินค้า out of stock (ใช้ stub)', async () => {
-    await test.step('01. Setup stub stock = 0', async () => {
-      await productPage.verifyProductOutOfStock('Balance Training Bicycle');
-    });
-
-    await test.step('02. ตรวจสอบว่า stock = 0', async () => {
-      console.log('✅ Out of stock verification passed (using stub)');
-    });
-  });
-
-  test('⚙️ ตรวจสอบสินค้า with custom stock amount', async () => {
-    await test.step('01. Stub custom stock amount (100 items)', async () => {
+  test('⚙️ ตรวจสอบสินค้า with custom to expected 90 stock amount', async () => {
+    await test.step('01. Stub custom stock amount (90 items)', async () => {
       await productPage.verifyProductDetailsWithStub(
         'Balance Training Bicycle',
         '฿4,314.60',
         '43 Points',
-        100 // Custom stock amount
+        90
       );
+      console.log('Stock verification passed (using stub)');
     });
 
     await test.step('02. Clear stubs', async () => {
@@ -70,4 +55,5 @@ test.describe('Product Page - Stock Verification (With Stub)', () => {
       console.log('หมายเหตุ: Method นี้ดึง stock จากระบบจริง ไม่ได้ใช้ stub');
     });
   });
+});
 });

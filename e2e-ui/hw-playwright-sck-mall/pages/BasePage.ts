@@ -73,35 +73,51 @@ export class BasePage {
   async stubPaymentGateway(options?: { successResponse?: boolean; delayMs?: number }): Promise<void> {
     const { successResponse = true, delayMs = 500 } = options || {};
 
-    // Stub OTP verification endpoint
+    // Stub payment-related endpoints but do NOT fulfill navigation/document requests
     await this.page.route('**/payment/**', async (route) => {
-      // Simulate network delay
+      const request = route.request();
+      const resourceType = request.resourceType();
+      const acceptHeader = (request.headers()['accept'] || '').toLowerCase();
+
+      // If the browser expects an HTML document (navigation to payment page), allow it to continue
+      const isDocument = resourceType === 'document' || acceptHeader.includes('text/html');
+      if (isDocument) {
+        await route.continue();
+        return;
+      }
+
+      // Simulate network delay only for API/XHR requests
       if (delayMs > 0) {
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
 
-      if (successResponse) {
-        // Mock successful response
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            message: 'OTP verified successfully',
-            transactionId: 'TXN-' + Date.now()
-          })
-        });
-      } else {
-        // Mock failed response
-        await route.fulfill({
-          status: 400,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: false,
-            message: 'Invalid OTP'
-          })
-        });
+      // Only mock XHR/Fetch/API style requests; otherwise continue
+      if (resourceType === 'xhr' || resourceType === 'fetch' || request.url().includes('/api/') || (request.headers()['content-type'] || '').includes('application/json')) {
+        if (successResponse) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: true,
+              message: 'OTP verified successfully',
+              transactionId: 'TXN-' + Date.now()
+            })
+          });
+        } else {
+          await route.fulfill({
+            status: 400,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: false,
+              message: 'Invalid OTP'
+            })
+          });
+        }
+        return;
       }
+
+      // Fallback: allow non-API requests to proceed
+      await route.continue();
     });
   }
 

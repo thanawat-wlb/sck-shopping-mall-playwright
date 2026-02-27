@@ -11,7 +11,8 @@ const PRODUCT_DATA = {
   point: '43',
   qty: '3',
   price_total: '12,943.80',
-  points_total: '129'
+  points_total: '129',
+  currencySymbol: '฿'
 };
 
 const SHIPPING_DATA = {
@@ -63,7 +64,7 @@ test.describe('SCK-Shopping Mall - Complete Checkout Flow', () => {
     await test.step('04. ตรวจสอบรายละเอียดสินค้า', async () => {
       await productPage.verifyProductDetails(
         PRODUCT_DATA.name,
-        `฿${PRODUCT_DATA.price}`,
+        `${PRODUCT_DATA.currencySymbol}${PRODUCT_DATA.price}`,
         `${PRODUCT_DATA.point} Points`
       );
     });

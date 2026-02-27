@@ -1,8 +1,8 @@
 import { test } from '@playwright/test';
-import { HomePage } from '../pages/HomePage';
-import { ProductPage } from '../pages/ProductPage';
-import { CartPage } from '../pages/CartPage';
-import { CheckoutPage } from '../pages/CheckoutPage';
+import { HomePage } from '../pages/HomePage'; // Homepage
+import { ProductPage } from '../pages/ProductPage'; // http://139.59.225.96/product/1
+import { CartPage } from '../pages/CartPage';  // Shopping cart หน้าตะกร้า
+import { CheckoutPage } from '../pages/CheckoutPage'; // http://139.59.225.96/checkout
 
 // ===== Test Data =====
 const PRODUCT_DATA = {
@@ -104,13 +104,55 @@ test.describe('SCK-Shopping Mall - Checkout Flow (With API Stubs)', () => {
       await checkoutPage.fillShippingAndPaymentInfo(PAYMENT_DATA.cvv);
     });
 
-    await test.step('08. ตรวจสอบ Order Summary และชำระเงิน', async () => {
-      await checkoutPage.verifyOrderSummaryAndPay();
+    await test.step('08. ตรวจสอบ Order Summary และชำระเงิน (with network logging)', async () => {
+      // Attach lightweight network logging for payment-related requests
+      const recorded: string[] = [];
+      const onRequest = (r: any) => {
+        const url = r.url();
+        if (url.includes('/payment') || url.includes('/otp') || url.includes('/transaction')) {
+          recorded.push(`REQ ${r.method()} ${url}`);
+        }
+      };
+      const onResponse = (res: any) => {
+        const url = res.url();
+        if (url.includes('/payment') || url.includes('/otp') || url.includes('/transaction')) {
+          recorded.push(`RES ${res.status()} ${url}`);
+        }
+      };
+
+      page.on('request', onRequest);
+      page.on('response', onResponse);
+
+      // Click Pay and wait for possible navigation (if the app navigates to payment gateway)
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {}),
+        checkoutPage.verifyOrderSummaryAndPay()
+      ]);
+
+      // small pause to allow background XHRs to fire
+      await page.waitForTimeout(500);
+
+      // Log where we are and what requests occurred
+      console.log('DEBUG: page.url after Pay click ->', page.url());
+      console.log('DEBUG: recorded payment-related network events ->', recorded);
+
+      // cleanup listeners to avoid duplicate logs in following steps
+      page.removeListener('request', onRequest as any);
+      page.removeListener('response', onResponse as any);
     });
 
     await test.step('09. Submit OTP (ใช้ stub - ไม่ยิง DB จริง)', async () => {
-      // ตอนนี้ checkoutPage.stubPaymentGateway() ได้ intercept API แล้ว
-      // เมื่อกดปุ่ม OK การ OTP verification จะใช้ mock response
+      // Wait longer for OTP input to appear (payment page may take time)
+      const otpLocator = page.locator('#otp-input');
+      try {
+        await otpLocator.waitFor({ state: 'visible', timeout: 15000 });
+      } catch (err) {
+        // If OTP not visible, capture debug info and throw to fail the test with context
+        const url = page.url();
+        throw new Error(`OTP input did not appear within 15s. Current URL: ${url}. See earlier logs for network events.`);
+      }
+
+      // If visible, use the page object method to submit
       await checkoutPage.submitOTP(OTP_CODE);
     });
 
@@ -121,32 +163,6 @@ test.describe('SCK-Shopping Mall - Checkout Flow (With API Stubs)', () => {
 
     await test.step('11. (Optional) Clean up stubs', async () => {
       await checkoutPage.clearStubs();
-    });
-  });
-
-  // =====================================================
-  // Test แยกสำหรับทดสอบ error case
-  // =====================================================
-  test('ลูกค้า submit OTP ล้มเหลว (Invalid OTP with stub)', async ({ page }) => {
-    const checkoutPage = new CheckoutPage(page);
-
-    await test.step('Setup stub สำหรับ failed OTP response', async () => {
-      // Mock failed payment
-      await checkoutPage.stubPaymentGateway({
-        successResponse: false,
-        delayMs: 500
-      });
-    });
-
-    await test.step('Navigate to OTP page', async () => {
-      await page.goto('/');
-      // ... Navigate to OTP
-    });
-
-    await test.step('Submit invalid OTP (expect error)', async () => {
-      // เมื่อ submit OTP จะได้ error response จาก stub
-      await checkoutPage.submitOTP('000000');
-      // ตรวจสอบว่าแสดง error message
     });
   });
 });

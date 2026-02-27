@@ -33,3 +33,7 @@ playwright-sck-mall/
 ├── playwright.config.ts    # ไฟล์ตั้งค่าหลัก (เทียบเท่า *** Settings *** และ Variables บางส่วน)
 ├── package.json
 └── tsconfig.json
+
+.
+Lesson Learn
+## สิ่งที่สำคัญจริงๆคือ ทีมที่ทำงานด้วยสามารถทำงานต่อคุณ หรือคุณไปต่อเขาได้

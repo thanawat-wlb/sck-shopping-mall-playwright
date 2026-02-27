@@ -45,22 +45,22 @@ test.describe('SCK-Shopping Mall - Complete Checkout Flow', () => {
     const cartPage = new CartPage(page);
     const checkoutPage = new CheckoutPage(page);
 
-    await test.step('01. ลูกค้าเข้าสู่ระบบ', async () => {
+    await test.step('ลูกค้าเข้าสู่ระบบ', async () => {
       await homePage.gotoLoginPage();
       await homePage.login('user_6', 'P@ssw0rd');
     });
 
-    await test.step('02. ไปที่หน้าค้นหาสินค้าและค้นหา "Balance Training Bicycle"', async () => {
+    await test.step('ไปที่หน้าค้นหาสินค้าและค้นหา "Balance Training Bicycle"', async () => {
       await homePage.gotoProductList();
       await homePage.fillSearchKeyword(PRODUCT_DATA.name);
       await homePage.submitSearchKeyword();
     });
 
-    await test.step('03. เลือกสินค้าจากผลลัพธ์การค้นหา', async () => {
+    await test.step('เลือกสินค้าจากผลลัพธ์การค้นหา', async () => {
       await homePage.selectProductByName(PRODUCT_DATA.name);
     });
 
-    await test.step('04. ตรวจสอบรายละเอียดสินค้า', async () => {
+    await test.step('ตรวจสอบรายละเอียดสินค้า', async () => {
       await productPage.verifyProductDetails(
         PRODUCT_DATA.name,
         `฿${PRODUCT_DATA.price}`,
@@ -68,13 +68,13 @@ test.describe('SCK-Shopping Mall - Complete Checkout Flow', () => {
       );
     });
 
-    await test.step('05. เพิ่มสินค้าลงตะกร้า', async () => {
+    await test.step('เพิ่มสินค้าลงตะกร้า', async () => {
       await productPage.increaseQuantityTo(PRODUCT_DATA.qty);
       await productPage.addToCart();
       await productPage.verifyCartCountAndNavigateToCart('1');
     });
 
-    await test.step('06. ตรวจสอบข้อมูลสินค้าในตะกร้า', async () => {
+    await test.step('ตรวจสอบข้อมูลสินค้าในตะกร้า', async () => {
       await cartPage.verifyCartItems(
         PRODUCT_DATA.name,
         PRODUCT_DATA.price_total,
@@ -84,23 +84,23 @@ test.describe('SCK-Shopping Mall - Complete Checkout Flow', () => {
       await cartPage.proceedToCheckout();
     });
 
-    await test.step('07. ตรวจสอบข้อมูลสินค้าในหน้า Checkout', async () => {
+    await test.step('ตรวจสอบข้อมูลสินค้าในหน้า Checkout', async () => {
       await checkoutPage.verifyInitialCheckoutInfo();
     });
 
-    await test.step('08. กรอกข้อมูลการจัดส่งและบัตรเครดิต', async () => {
+    await test.step('กรอกข้อมูลการจัดส่งและบัตรเครดิต', async () => {
       await checkoutPage.fillShippingAndPaymentInfo(PAYMENT_DATA.cvv);
     });
 
-    await test.step('09. ตรวจสอบ Order Summary และชำระเงิน', async () => {
+    await test.step('ตรวจสอบ Order Summary และชำระเงิน', async () => {
       await checkoutPage.verifyOrderSummaryAndPay();
     });
 
-    await test.step('10. กรอกรหัส OTP', async () => {
+    await test.step('กรอกรหัส OTP', async () => {
       await checkoutPage.submitOTP(OTP_CODE);
     });
 
-    await test.step('11. ลงทะเบียนอีเมลและเบอร์โทรเพื่อรับข่าวสาร', async () => {
+    await test.step('ลงทะเบียนอีเมลและเบอร์โทรเพื่อรับข่าวสาร', async () => {
       await checkoutPage.subscribeToNotification(NOTIFICATION_EMAIL, NOTIFICATION_MOBILE);
     });
   });
